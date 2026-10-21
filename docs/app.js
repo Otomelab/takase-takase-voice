@@ -540,7 +540,12 @@ async function connectGemini() {
       setStatus("エラー");
     });
     socket.addEventListener("close", (closeEvent) => {
-      if (!state.closing) {
+      if (!state.closing && /credit|depleted|api key|permission|invalid|unauthenticated/i.test(closeEvent.reason || "")) {
+        localStorage.removeItem(GEMINI_KEY);
+        ui.geminiKey.value = "";
+        setError("この Gemini キーは使えません（残高切れか無効なキー）。保存していたキーは消しました。設定に新しいキーを貼ってから接続してください。");
+        setStatus("キーが必要です");
+      } else if (!state.closing) {
         setError(`接続が閉じました（${[closeEvent.code, closeEvent.reason].filter(Boolean).join(" ") || "理由なし"}）`);
         setStatus("切断されました");
       } else {
