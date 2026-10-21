@@ -302,3 +302,5 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
   .transcript { max-height: none; }
   .deco-column { display: grid; grid-template-columns: 1fr 1fr; }
 }
+
+[hidden] { display: none !important; }

@@ -15,6 +15,13 @@ import {
   pcm16BytesToFloat32,
   resampleLinear,
 } from "./audio-util.js";
+import {
+  GEMINI_DEFAULT_MODEL,
+  GEMINI_INPUT_RATE,
+  buildGeminiSetup,
+  geminiAudioMessage,
+  geminiUrl,
+} from "./gemini.js";
 
 const STORAGE_KEY = "slot060.elevenlabsApiKey";
 const VOICE_KEY = "slot060.voice";
@@ -23,6 +30,10 @@ const MODEL_KEY = "slot060.model";
 const TEMPERATURE_KEY = "slot060.temperature";
 const EAGERNESS_KEY = "slot060.eagerness";
 const INTERRUPT_KEY = "slot060.interrupt";
+const PROVIDER_KEY = "slot060.provider";
+const GEMINI_KEY = "slot060.geminiKey";
+const GEMINI_MODEL_KEY = "slot060.geminiModel";
+const GEMINI_VOICE_KEY = "slot060.geminiVoice";
 const CLIENT_SECRET_URL = "https://api.elevenlabs.io/v1/convai/realtime/client_secrets";
 const SEND_SAMPLES = 2400;
 
@@ -32,6 +43,9 @@ const ui = {
   error: document.querySelector("#error"),
   transcript: document.querySelector("#transcript"),
   apiKey: document.querySelector("#api-key"),
+  geminiKey: document.querySelector("#gemini-key"),
+  geminiModel: document.querySelector("#gemini-model"),
+  geminiVoice: document.querySelector("#gemini-voice"),
   voice: document.querySelector("#voice"),
   tokenUrl: document.querySelector("#token-url"),
   temperature: document.querySelector("#temperature"),
@@ -53,7 +67,19 @@ const state = {
   assistantBubble: null,
   userBubble: null,
   closing: false,
+  provider: "elevenlabs",
 };
+
+function currentProvider() {
+  const selected = document.querySelector("input[name='provider']:checked");
+  return selected?.value === "gemini" ? "gemini" : "elevenlabs";
+}
+
+function showProvider() {
+  const gemini = currentProvider() === "gemini";
+  document.querySelectorAll(".gemini-only").forEach((el) => { el.hidden = !gemini; });
+  document.querySelectorAll(".eleven-only").forEach((el) => { el.hidden = gemini; });
+}
 
 function currentVoiceId() {
   return ui.voice.value.trim() || DEFAULT_VOICE_ID;
@@ -128,6 +154,14 @@ function setSpeaking(on) {
 
 function loadSettings() {
   ui.apiKey.value = localStorage.getItem(STORAGE_KEY) || "";
+  ui.geminiKey.value = localStorage.getItem(GEMINI_KEY) || "";
+  ui.geminiModel.value = localStorage.getItem(GEMINI_MODEL_KEY) || GEMINI_DEFAULT_MODEL;
+  if (!ui.geminiModel.value) ui.geminiModel.value = GEMINI_DEFAULT_MODEL;
+  ui.geminiVoice.value = localStorage.getItem(GEMINI_VOICE_KEY) || "";
+  const provider = localStorage.getItem(PROVIDER_KEY) === "gemini" ? "gemini" : "elevenlabs";
+  const providerInput = document.querySelector(`input[name='provider'][value='${provider}']`);
+  if (providerInput) providerInput.checked = true;
+  showProvider();
   ui.voice.value = localStorage.getItem(VOICE_KEY) || DEFAULT_VOICE_ID;
   ui.tokenUrl.value = localStorage.getItem(TOKEN_URL_KEY) || "";
   const model = localStorage.getItem(MODEL_KEY) === "eleven_realtime_v1_max"
@@ -160,13 +194,22 @@ function saveSettings() {
   localStorage.setItem(TEMPERATURE_KEY, ui.temperature.value);
   localStorage.setItem(EAGERNESS_KEY, currentEagerness());
   localStorage.setItem(INTERRUPT_KEY, String(ui.interrupt.checked));
+  const geminiKey = ui.geminiKey.value.trim();
+  if (geminiKey) localStorage.setItem(GEMINI_KEY, geminiKey);
+  else localStorage.removeItem(GEMINI_KEY);
+  localStorage.setItem(GEMINI_MODEL_KEY, ui.geminiModel.value);
+  if (ui.geminiVoice.value.trim()) localStorage.setItem(GEMINI_VOICE_KEY, ui.geminiVoice.value.trim());
+  else localStorage.removeItem(GEMINI_VOICE_KEY);
+  localStorage.setItem(PROVIDER_KEY, currentProvider());
   ui.voice.value = voice;
   showTemperature(ui.temperature.value);
 }
 
 function clearKey() {
   localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(GEMINI_KEY);
   ui.apiKey.value = "";
+  ui.geminiKey.value = "";
   if (state.ws) disconnect();
   setStatus("未接続");
   setError("このブラウザに保存していた API キーを削除しました。");
@@ -368,6 +411,19 @@ function sendAudioChunk(samples) {
 }
 
 function onMicSamples(samples) {
+  if (state.provider === "gemini") {
+    const down = resampleLinear(samples, state.inputRate, GEMINI_INPUT_RATE);
+    state.pending = concatFloat32(state.pending, down);
+    const chunk = GEMINI_INPUT_RATE / 10;
+    while (state.pending.length >= chunk) {
+      if (state.ws && state.ws.readyState === WebSocket.OPEN) {
+        const pcm = floatToPcm16(state.pending.subarray(0, chunk));
+        state.ws.send(JSON.stringify(geminiAudioMessage(bytesToBase64(new Uint8Array(pcm)))));
+      }
+      state.pending = state.pending.slice(chunk);
+    }
+    return;
+  }
   const resampled = resampleLinear(samples, state.inputRate, TARGET_RATE);
   state.pending = concatFloat32(state.pending, resampled);
   while (state.pending.length >= SEND_SAMPLES) {
@@ -401,8 +457,116 @@ function stopMicrophone() {
   state.pending = new Float32Array(0);
 }
 
+function handleGeminiMessage(msg) {
+  if (msg.error) {
+    setError(describeError(msg.error) || "Gemini Live エラー");
+    setStatus("エラー");
+    return;
+  }
+  if (msg.setupComplete) {
+    setStatus("接続中（Gemini）。マイクで由衣さんとして話しかけてください");
+    return;
+  }
+  if (msg.goAway) setError("Gemini のセッションがまもなく終了します。接続し直してください。");
+  const sc = msg.serverContent;
+  if (!sc) return;
+  if (sc.interrupted) {
+    state.player?.stop();
+    state.assistantBubble = null;
+  }
+  if (sc.inputTranscription?.text) {
+    const body = ensureUser();
+    body.textContent += sc.inputTranscription.text;
+    ui.transcript.scrollTop = ui.transcript.scrollHeight;
+  }
+  for (const part of sc.modelTurn?.parts || []) {
+    if (part.inlineData?.data && String(part.inlineData.mimeType || "audio/pcm").startsWith("audio/")) {
+      state.userBubble = null;
+      state.player?.enqueue(base64ToBytes(part.inlineData.data));
+      setStatus("高瀬さんが話しています");
+    }
+  }
+  if (sc.outputTranscription?.text) {
+    state.userBubble = null;
+    appendAssistant(sc.outputTranscription.text);
+  }
+  if (sc.turnComplete) {
+    state.assistantBubble = null;
+    state.userBubble = null;
+  }
+}
+
+async function connectGemini() {
+  const apiKey = ui.geminiKey.value.trim();
+  if (!apiKey) {
+    setError("設定に Gemini の API キーを入力してください。キーはこのブラウザの localStorage にだけ保存されます。");
+    return;
+  }
+  ui.connect.disabled = true;
+  setStatus("Gemini に接続しています");
+  try {
+    state.provider = "gemini";
+    state.audioContext = new AudioContext();
+    await state.audioContext.resume();
+    state.player = new PcmPlayer(state.audioContext);
+    state.closing = false;
+    const socket = new WebSocket(geminiUrl(apiKey));
+    state.ws = socket;
+    socket.addEventListener("open", async () => {
+      socket.send(JSON.stringify(buildGeminiSetup({
+        model: ui.geminiModel.value,
+        voice: ui.geminiVoice.value,
+        temperature: ui.temperature.value,
+      })));
+      try {
+        await startMicrophone();
+      } catch (error) {
+        setError(`マイクを開始できませんでした。${error.message}`);
+        setStatus("マイクエラー");
+      }
+      ui.connect.disabled = false;
+      ui.connect.textContent = "切断する";
+      ui.connect.dataset.mode = "disconnect";
+    });
+    socket.addEventListener("message", async (message) => {
+      let text = message.data;
+      if (typeof text !== "string") text = await text.text();
+      let msg;
+      try { msg = JSON.parse(text); } catch { return; }
+      handleGeminiMessage(msg);
+    });
+    socket.addEventListener("error", () => {
+      setError("Gemini への WebSocket 接続でエラーが起きました。API キーとネットワークを確認してください。");
+      setStatus("エラー");
+    });
+    socket.addEventListener("close", (closeEvent) => {
+      if (!state.closing) {
+        setError(`接続が閉じました（${[closeEvent.code, closeEvent.reason].filter(Boolean).join(" ") || "理由なし"}）`);
+        setStatus("切断されました");
+      } else {
+        setStatus("未接続");
+      }
+      cleanupAudio();
+      ui.connect.disabled = false;
+      ui.connect.textContent = "接続する";
+      ui.connect.dataset.mode = "connect";
+      state.ws = null;
+    });
+  } catch (error) {
+    setError(error.message || String(error));
+    setStatus("エラー");
+    cleanupAudio();
+    ui.connect.disabled = false;
+  }
+}
+
 async function connect() {
   saveSettings();
+  if (currentProvider() === "gemini") {
+    setError("");
+    return connectGemini();
+  }
+  state.provider = "elevenlabs";
   setError("");
   const apiKey = ui.apiKey.value.trim();
   const options = sessionOptions();
@@ -514,6 +678,7 @@ document.querySelector("#settings-form").addEventListener("submit", (event) => {
 });
 
 ui.clear.addEventListener("click", clearKey);
+document.querySelectorAll("input[name='provider']").forEach((el) => el.addEventListener("change", showProvider));
 
 ui.connect.addEventListener("click", () => {
   if (ui.connect.dataset.mode === "disconnect") disconnect();

@@ -123,3 +123,13 @@ node --check optional-token-server/server.mjs
 ```
 
 マイクと実 API への発話は、有効なキーを入れたブラウザで確認してください。
+
+## Gemini Live（切り替え可）
+
+設定の「接続先」で **Gemini Live** を選ぶと、Google の Gemini Live API にブラウザから直接 WebSocket でつなぎます（`docs/gemini.js`）。
+
+- キー: [Google AI Studio](https://aistudio.google.com/apikey) で発行したキーを設定欄に貼る。保存先はこのブラウザの `localStorage`（`slot060.geminiKey`）だけで、リポジトリには入れない。
+- モデル: 既定 `gemini-3.1-flash-live-preview`（無料枠あり）。`gemini-3.8-live` も選べる。
+- 音声: マイクは 16kHz PCM16、返答は 24kHz PCM16。声は prebuilt voice 名（既定 `Puck`）、`languageCode: ja-JP`。
+- 指示文は ElevenLabs と同じ `TAKASE_INSTRUCTIONS`。入出力の文字起こしを同じ会話欄に表示し、`[laugh]` などのタグは消す。
+- 無料枠では入力がモデル改善に使われる。課金済みプロジェクトのキーはプリペイド残高が切れると 1011 で切断される。
