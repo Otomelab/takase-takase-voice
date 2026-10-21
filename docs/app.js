@@ -201,7 +201,8 @@ function ensureAssistant() {
 function appendAssistant(text) {
   if (!text) return;
   const body = ensureAssistant();
-  body.textContent += text;
+  body.dataset.raw = (body.dataset.raw || "") + text;
+  body.textContent = stripTags(body.dataset.raw);
   ui.transcript.scrollTop = ui.transcript.scrollHeight;
 }
 
@@ -346,7 +347,7 @@ function handleServerEvent(event) {
       break;
     case "response.output_audio_transcript.done":
     case "response.audio_transcript.done":
-      if (event.transcript) ensureAssistant().textContent = event.transcript;
+      if (event.transcript) ensureAssistant().textContent = stripTags(event.transcript);
       break;
     case "response.done":
       state.assistantBubble = null;
@@ -521,3 +522,7 @@ ui.connect.addEventListener("click", () => {
 
 loadSettings();
 setStatus("未接続");
+
+function stripTags(s) {
+  return s.replace(/\[[^\]\n]{0,30}\]\s*/g, "").replace(/\[[^\]\n]{0,30}$/, "");
+}
