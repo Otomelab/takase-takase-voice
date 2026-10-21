@@ -180,7 +180,7 @@ function addBubble(role, text) {
   const image = document.createElement("img");
   if (role === "user") {
     image.src = "assets/expressions/yui/training_expression_02.png";
-    image.alt = "ゆいちゃん";
+    image.alt = "由衣さん";
   } else {
     image.src = "assets/expressions/takase/02_笑顔.png";
     image.alt = "高瀬さん";
@@ -322,7 +322,7 @@ function handleServerEvent(event) {
       state.player?.stop();
       state.assistantBubble = null;
       state.userBubble = null;
-      setStatus("ゆいちゃんの声を聞いています");
+      setStatus("由衣さんの声を聞いています");
       break;
     case "input_audio_buffer.speech_stopped":
       setStatus("高瀬さんが考えています");
@@ -437,7 +437,7 @@ async function connect() {
       }));
       try {
         await startMicrophone();
-        setStatus("接続中。マイクでゆいちゃんとして話しかけてください");
+        setStatus("接続中。マイクで由衣さんとして話しかけてください");
       } catch (error) {
         setError(`マイクを開始できませんでした。${error.message}`);
         setStatus("マイクエラー");
