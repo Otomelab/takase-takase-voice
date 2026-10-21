@@ -157,7 +157,7 @@ function loadSettings() {
   ui.geminiKey.value = localStorage.getItem(GEMINI_KEY) || "";
   ui.geminiModel.value = localStorage.getItem(GEMINI_MODEL_KEY) || GEMINI_DEFAULT_MODEL;
   if (!ui.geminiModel.value) ui.geminiModel.value = GEMINI_DEFAULT_MODEL;
-  ui.geminiVoice.value = localStorage.getItem(GEMINI_VOICE_KEY) || "";
+  ui.geminiVoice.value = localStorage.getItem(GEMINI_VOICE_KEY) || "Orus";
   const provider = localStorage.getItem(PROVIDER_KEY) === "gemini" ? "gemini" : "elevenlabs";
   const providerInput = document.querySelector(`input[name='provider'][value='${provider}']`);
   if (providerInput) providerInput.checked = true;
