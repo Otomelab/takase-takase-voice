@@ -2,7 +2,7 @@
 
 由衣さんがブラウザのマイクで話し、高瀬さんが声で返す静的な音声チャットです。GitHub Pages に置きます。
 
-公開先の想定 URL は [https://ayumisan.github.io/slot-060/](https://ayumisan.github.io/slot-060/) です。サイト本体は `docs/` です。
+公開先の想定 URL は [https://otomelab.github.io/takase-voice/](https://otomelab.github.io/takase-voice/) です。サイト本体は `docs/` です。
 
 ## 使い方
 
@@ -34,7 +34,7 @@ speed、stability、similarity_boost、style のスライダーはありませ�
 
 - 保存先はこのブラウザの `localStorage` だけです。
 - 「キーを削除」でその項目を消します。
-- この Pages は `https://ayumisan.github.io` を他のプロジェクトサイトと共有します。`localStorage` はパスごとではなくオリジンごとなので、同じオリジンの別ページからも読める可能性があります。共有パソコンでは削除してください。
+- この Pages は `https://otomelab.github.io` を他のプロジェクトサイトと共有します。`localStorage` はパスごとではなくオリジンごとなので、同じオリジンの別ページからも読める可能性があります。共有パソコンでは削除してください。
 - 接続時、キーは短命の client secret を発行するためだけに `POST https://api.elevenlabs.io/v1/convai/realtime/client_secrets` へ送られます。WebSocket には返ってきた `value` だけを使います。
 
 2026-10-20 時点で、この発行エンドポイントは `Access-Control-Allow-Origin: *` と `Access-Control-Allow-Headers: *` を返すため、静的ページのブラウザから発行できます。公式ドキュメントは、キーをブラウザに置かずサーバーで発行する流れを推奨しています。ブラウザからの発行が CORS や組織の方針で止まった場合は、下の任意サーバーを使ってください。
@@ -73,7 +73,7 @@ ELEVENLABS_API_KEY="あなたのキー" node optional-token-server/server.mjs
 
 高瀬さんのシステムプロンプトは編集用に [`docs/persona.js`](docs/persona.js) へ分けてあります。
 
-`https://ayumisan.github.io/slot-096` は GitHub Pages の "Site not found"（HTTP 404）、`https://github.com/ayumisan/slot-096` は Repository not found（HTTP 404）でした。ページもリポジトリも読めなかったので、そこからの原文転記はできていません。プロンプトに入れた事実とセリフは、同じ高瀬航・小野寺由衣の公開作品 [ayumisan/slot-097](https://github.com/ayumisan/slot-097)（『店じまいの合図』）にあるものだけです。呼び方の「由衣さん」は、このアプリで相手をそう呼ぶ、という指定です。作品中の呼称は「小野寺さん」から「由衣さん」です。
+slot-096 の GitHub Pages は "Site not found"（HTTP 404）、リポジトリも Repository not found（HTTP 404）でした。ページもリポジトリも読めなかったので、そこからの原文転記はできていません。プロンプトに入れた事実とセリフは、同じ高瀬航・小野寺由衣の公開作品 [Otomelab/takase-otome](https://github.com/Otomelab/takase-otome)（『店じまいの合図』）にあるものだけです。呼び方の「由衣さん」は、このアプリで相手をそう呼ぶ、という指定です。作品中の呼称は「小野寺さん」から「由衣さん」です。
 
 使った公開上の要点:
 
@@ -95,7 +95,7 @@ slot-096 が後から公開されたら、`docs/persona.js` の文字列だけ�
 
 ## 画像
 
-`docs/assets/` は [slot-097 の assets](https://github.com/ayumisan/slot-097/tree/main/assets) からコピーしています。パスは `assets/...` の相対パスです。
+`docs/assets/` は [takase-otome の assets](https://github.com/Otomelab/takase-otome/tree/main/assets) からコピーしています。パスは `assets/...` の相対パスです。
 
 | ファイル | 画面での役割 |
 | --- | --- |
@@ -112,7 +112,7 @@ slot-096 が後から公開されたら、`docs/persona.js` の文字列だけ�
 
 プライベートリポジトリの Pages は、無料プランでは有効にできないことがあります。その場合は GitHub の Settings、Pages で Source を GitHub Actions にしてください。ブランチから出す場合は `main` の `/docs` です。
 
-期待する URL: https://ayumisan.github.io/slot-060/
+期待する URL: https://otomelab.github.io/takase-voice/
 
 ## 開発用チェック
 

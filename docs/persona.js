@@ -1,10 +1,10 @@
 // Editable system prompt for the voice session.
 //
-// https://ayumisan.github.io/slot-096 returned GitHub Pages "Site not found"
-// (HTTP 404), and https://github.com/ayumisan/slot-096 returned "Repository not
+// slot-096's GitHub Pages site returned "Site not found"
+// (HTTP 404), and its GitHub repository returned "Repository not
 // found" (HTTP 404), when this file was written. Nothing from that URL could
 // be copied. The instructions below use only facts and spoken lines published
-// in https://github.com/ayumisan/slot-097 （店じまいの合図）and the app request
+// in https://github.com/Otomelab/takase-otome （店じまいの合図）and the app request
 // that 高瀬さん address the user as ゆいちゃん. Replace this string if slot-096
 // is published later.
 //
